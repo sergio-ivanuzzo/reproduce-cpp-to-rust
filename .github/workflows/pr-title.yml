@@ -20,5 +20,11 @@ jobs:
             jira_link="[${ticket}](${jira_url}${ticket})"
             new_title=$(echo $pr_title | sed "s#${ticket}#${jira_link}#")
             echo "Updating PR title to: $new_title"
-            jq --arg new_title "$new_title" '.pull_request.title = $new_title' $GITHUB_EVENT_PATH > $GITHUB_EVENT_PATH.tmp && mv $GITHUB_EVENT_PATH.tmp $GITHUB_EVENT_PATH
+          
+            # Update PR title using GitHub API
+            curl -X PATCH \
+              -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+              -H "Accept: application/vnd.github.v3+json" \
+              https://api.github.com/repos/${GITHUB_REPOSITORY}/pulls/${{ github.event.pull_request.number }} \
+              -d "{\"title\":\"$new_title\"}"
           fi
