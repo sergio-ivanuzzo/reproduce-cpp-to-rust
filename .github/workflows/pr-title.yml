@@ -20,34 +20,12 @@ jobs:
             jira_link="[${ticket}](${jira_url}${ticket})"
             new_title=$(echo $pr_title | sed "s#${ticket}#${jira_link}#")
             echo "Updating PR title to: $new_title"
+            jq --arg new_title "$new_title" '.pull_request.title = $new_title' $GITHUB_EVENT_PATH > $GITHUB_EVENT_PATH.tmp && mv $GITHUB_EVENT_PATH.tmp $GITHUB_EVENT_PATH
           
-            # Update PR title using GitHub API with Python
-            python3 - <<EOF
-  import os
-  import json
-  import requests
-  
-  title = os.getenv('new_title')
-  pr_number = os.getenv('GITHUB_EVENT_PATH').split('/')[-1].split('.')[0]
-  token = os.getenv('GITHUB_TOKEN')
-  repo = os.getenv('GITHUB_REPOSITORY')
-  
-  headers = {
-"Authorization": f"token {token}",
-"Accept": "application/vnd.github.v3+json"
-}
-
-  data = {
-"title": title
-}
-
-  response = requests.patch(f"https://api.github.com/repos/{repo}/pulls/{pr_number}", headers=headers, json=data)
-
-if response.status_code == 200:
-  print("PR title updated successfully")
-else:
-  print("Failed to update PR title")
-  EOF
-  fi
-env:
-  new_title: ${{ steps.add-jira-link.outputs.new_title }}
+            # Update PR title using GitHub API
+            curl -X PATCH \
+              -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+              -H "Accept: application/vnd.github.v3+json" \
+              "https://api.github.com/repos/${{ github.repository }}/pulls/${{ github.event.number }}" \
+              -d "{\"title\":\"$new_title\"}"
+          fi
