@@ -6,6 +6,7 @@
 class SRP6 {
 public:
     SRP6(BigNum N, BigNum g, BigNum s, BigNum B, std::string username, std::string password);
+    SRP6(BigNum N, BigNum g, BigNum s, BigNum B, std::string username, std::string password, BigNum a);
 
     BigNum calculate_session_key();
     BigNum calculate_proof();

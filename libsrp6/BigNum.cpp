@@ -1,3 +1,4 @@
+#include <string>
 #include "BigNum.h"
 
 BigNum::BigNum() {
@@ -17,7 +18,7 @@ BigNum::BigNum(const char* data){
 }
 
 BigNum BigNum::from_bin(const unsigned char* data, int length){
-    BN_bin2bn(data, length, bn);
+    BN_lebin2bn(data, length, bn);
 
     return *this;
 }
@@ -33,6 +34,19 @@ unsigned char* BigNum::to_bin(int length){
 
 BigNum BigNum::from_dec(const char* data){
     BN_dec2bn(&bn, data);
+
+    return *this;
+}
+
+std::string BigNum::to_dec() {
+    char* dec_str = BN_bn2dec(bn);
+    std::string result(dec_str);
+    OPENSSL_free(dec_str);
+    return result;
+}
+
+BigNum BigNum::from_hex(const char* data){
+    BN_hex2bn(&bn, data);
 
     return *this;
 }

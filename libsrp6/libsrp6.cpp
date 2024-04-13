@@ -3,33 +3,60 @@
 #include "libsrp6.h"
 #include <openssl/evp.h>
 #include <iostream>
+#include <vector>
+#include <cstring>
 
 extern "C" void test_srp6(
-    const char* N_str,
-    const char* g_str,
-    const char* B_str,
-    const char* s_str,
-    const char* username_str,
-    const char* password_str
+        const char* N_str,
+        const char* g_str,
+        const char* B_str,
+        const char* s_str,
+        const char* username_str,
+        const char* password_str,
+        const char* a_str
 ) {
-    BigNum N(N_str);
-    BigNum g(g_str);
-    BigNum s(s_str);
-    BigNum B(B_str);
-    std::string username(username_str);
-    std::string password(password_str);
 
-    SRP6 client(N, g, s, B, username, password);
+    std::cout << "username=" << username_str << " | " << strlen(username_str) << std::endl;
+    std::cout << "password=" << password_str << std::endl;
+
+    BigNum N(reinterpret_cast<const unsigned char *>(N_str), 32);
+    BigNum g(reinterpret_cast<const unsigned char *>(g_str), 1);
+    BigNum s(reinterpret_cast<const unsigned char *>(s_str), 32);
+    BigNum B(reinterpret_cast<const unsigned char *>(B_str), 32);
+    BigNum a(reinterpret_cast<const unsigned char *>(a_str), 19);
+
+    std::string username(username_str, strlen(username_str));
+    std::string password(password_str, strlen(password_str));
+
+    SRP6 client(N, g, s, B, username, password, a);
     client.calculate_session_key();
 }
 
 SRP6::SRP6(BigNum N, BigNum g, BigNum s, BigNum B, std::string username, std::string password):
-N(N), g(g), s(s), B(B), k("3"), username(std::move(username)), password(std::move(password))
+N(N), g(g), s(s), B(B), username(std::move(username)), password(std::move(password))
 {
     std::transform(this->username.begin(), this->username.end(), this->username.begin(), ::toupper);
     std::transform(this->password.begin(), this->password.end(), this->password.begin(), ::toupper);
+    k.from_dec("3");
 
     calculate_private_ephemeral();
+    std::cout << "a=" << a.to_hex() << std::endl;
+    calculate_public_ephemeral();
+    std::cout << "A=" << A.to_hex() << std::endl;
+    calculate_x();
+    std::cout << "x=" << x.to_hex() << std::endl;
+    calculate_u();
+    std::cout << "u=" << u.to_hex() << std::endl;
+    calculate_S();
+    std::cout << "S=" << S.to_hex() << std::endl;
+}
+
+SRP6::SRP6(BigNum N, BigNum g, BigNum s, BigNum B, std::string username, std::string password, BigNum a):
+N(N), g(g), s(s), B(B), username(std::move(username)), password(std::move(password)), a(a) {
+    std::transform(this->username.begin(), this->username.end(), this->username.begin(), ::toupper);
+    std::transform(this->password.begin(), this->password.end(), this->password.begin(), ::toupper);
+    k.from_dec("3");
+
     std::cout << "a=" << a.to_hex() << std::endl;
     calculate_public_ephemeral();
     std::cout << "A=" << A.to_hex() << std::endl;
@@ -71,6 +98,29 @@ void SRP6::calculate_x() {
     EVP_MD_CTX* digest = EVP_MD_CTX_new();
     auto* result = new unsigned char[20];
 
+    const auto* bytes = reinterpret_cast<const unsigned char*>(username.data());
+    std::cout << "[C++] bytes=" << bytes << std::endl;
+    for (size_t i = 0; i < username.length(); ++i) {
+        std::cout << static_cast<int>(bytes[i]) << " ";
+    }
+    std::cout << std::endl;
+
+    std::vector<uint8_t> myVector = {1, 2, 3};
+    EVP_DigestInit(digest, EVP_sha1());
+    EVP_DigestUpdate(digest, myVector.data(), 3);
+
+    EVP_DigestFinal(digest, result, nullptr);
+
+    BigNum p1;
+    p1.from_bin(result, 20);
+
+    std::cout << "[C++] p1=" << p1.to_hex() << std::endl;
+    std::cout << "[C++] p1=" << p1.to_dec() << std::endl;
+
+    std::cout << "username=" << username << std::endl;
+    std::cout << "password=" << password << std::endl;
+    std::cout << "s.to_bin(32)=" << s.to_bin(32) << std::endl;
+
     EVP_DigestInit(digest, EVP_sha1());
     EVP_DigestUpdate(digest, username.c_str(), username.length());
     EVP_DigestUpdate(digest, ":", 1);
@@ -88,6 +138,8 @@ void SRP6::calculate_x() {
     EVP_DigestFinal(digest, result, nullptr);
 
     x.from_bin(result, 20);
+
+    EVP_MD_CTX_free(digest);
 }
 
 void SRP6::calculate_u() {
@@ -102,7 +154,11 @@ void SRP6::calculate_u() {
 }
 
 void SRP6::calculate_public_ephemeral() {
+    std::cout << "[C++]g=" << g.to_dec() << std::endl;
+    std::cout << "[C++]a=" << a.to_dec() << std::endl;
+    std::cout << "[C++]N=" << N.to_dec() << std::endl;
     A = g.mod_exp(a, N);
+    std::cout << "[C++]A=" << A.to_dec() << std::endl;
 }
 
 void SRP6::calculate_private_ephemeral() {
