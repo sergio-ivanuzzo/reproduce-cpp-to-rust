@@ -49,7 +49,7 @@ fn main() {
     let account_str = CString::new(account).expect("Failed to convert account to CString");
     let password_str = CString::new(password).expect("Failed to convert password to CString");
 
-    // println!("FIRST");
+    println!("FIRST");
     unsafe {
         test_srp6(
             n.as_ptr() as *const c_char,
@@ -68,7 +68,7 @@ fn main() {
     let account = connection_data.account;
     let password = connection_data.password;
 
-    // println!("SECOND");
+    println!("SECOND");
     unsafe {
         test_srp6(
             n.as_ptr() as *const c_char,
