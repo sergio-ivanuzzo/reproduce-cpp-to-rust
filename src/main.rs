@@ -68,7 +68,7 @@ fn main() {
     let account = connection_data.account;
     let password = connection_data.password;
 
-    println!("SECOND");
+    // println!("SECOND");
     unsafe {
         test_srp6(
             n.as_ptr() as *const c_char,
