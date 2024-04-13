@@ -13,19 +13,15 @@ jobs:
       - name: Add JIRA Link to PR Title
         run: |
           pr_title=$(jq -r '.pull_request.title' $GITHUB_EVENT_PATH)
-          jira_url="https://idewave.atlassian.net/browse/"
-          ticket=$(echo $pr_title | grep -o 'AB-[0-9]\+')
           
-          if [[ ! -z "$ticket" ]]; then
-            jira_link="[${ticket}](${jira_url}${ticket})"
-            new_title=$(echo $pr_title | sed "s#${ticket}#${jira_link}#")
-            echo "Updating PR title to: $new_title"
-            jq --arg new_title "$new_title" '.pull_request.title = $new_title' $GITHUB_EVENT_PATH > $GITHUB_EVENT_PATH.tmp && mv $GITHUB_EVENT_PATH.tmp $GITHUB_EVENT_PATH
+          new_title="TEST"
+          echo "Updating PR title to: $new_title"
           
-            # Update PR title using GitHub API
-            curl -X PATCH \
-              -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-              -H "Accept: application/vnd.github.v3+json" \
-              "https://api.github.com/repos/${{ github.repository }}/pulls/${{ github.event.number }}" \
-              -d "{\"title\":\"$new_title\"}"
-          fi
+          jq --arg new_title "$new_title" '.pull_request.title = $new_title' $GITHUB_EVENT_PATH > $GITHUB_EVENT_PATH.tmp && mv $GITHUB_EVENT_PATH.tmp $GITHUB_EVENT_PATH
+          
+          # Update PR title using GitHub API
+          curl -X PATCH \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/repos/${{ github.repository }}/pulls/${{ github.event.number }}" \
+            -d "{\"title\":\"$new_title\"}"
