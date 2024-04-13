@@ -12,16 +12,13 @@ jobs:
     steps:
       - name: Add JIRA Link to PR Title
         run: |
+          pr_number=$(jq -r '.number' $GITHUB_EVENT_PATH)
           pr_title=$(jq -r '.pull_request.title' $GITHUB_EVENT_PATH)
-          
           new_title="TEST"
-          echo "Updating PR title to: $new_title"
-          
-          jq --arg new_title "$new_title" '.pull_request.title = $new_title' $GITHUB_EVENT_PATH > $GITHUB_EVENT_PATH.tmp && mv $GITHUB_EVENT_PATH.tmp $GITHUB_EVENT_PATH
-          
+
           # Update PR title using GitHub API
           curl -X PATCH \
             -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
             -H "Accept: application/vnd.github.v3+json" \
-            "https://api.github.com/repos/${{ github.repository }}/pulls/${{ github.event.number }}" \
+            "https://api.github.com/repos/${{ github.repository }}/pulls/$pr_number" \
             -d "{\"title\":\"$new_title\"}"
